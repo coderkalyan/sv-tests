@@ -164,7 +164,39 @@ $(INSTALL_DIR)/bin/circt-verilog:
 		-DCIRCT_SLANG_FRONTEND_ENABLED=ON
 	$(MAKE) -C $(RDIR)/circt-verilog/build install-circt-verilog
 
+# clotho
+clotho: $(INSTALL_DIR)/bin/clotho clotho-uvm-dpi
+
+$(INSTALL_DIR)/bin/clotho:
+	cd $(RDIR)/clotho && cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+	cmake --build $(RDIR)/clotho/build --target clotho_cli
+	install -D $(RDIR)/clotho/build/clotho $@
+
+# UVM DPI for clotho: the regex / command-line helpers are UVM's real C; the
+# HDL-backdoor functions are stubbed (clotho has no VPI backend). The UVM C
+# calls back into the design (m__uvm_report_dpi, an `export "DPI-C"` function
+# the JIT compiles from SV), so clotho's JIT needs a relocatable object it can
+# link symbols into — a prebuilt .so's internal calls are already bound and
+# can't be patched to reach freshly JIT-compiled code. Build a plain .o, not a
+# shared object. tools/runners/clotho.py links it in with --dpi-lib when a UVM
+# test simulates. Header sources: svdpi.h from the clotho tree, the VPI header
+# set from Verilator (override CLOTHO_SVDPI_DIR / VPI_INC_DIR if they live
+# elsewhere).
+CLOTHO_SVDPI_DIR ?= $(RDIR)/clotho/src/runtime
+VPI_INC_DIR ?= /usr/share/verilator/include/vltstd
+CLOTHO_DPI_LIB_DIR := $(INSTALL_DIR)/lib
+clotho-uvm-dpi:
+	mkdir -p $(CLOTHO_DPI_LIB_DIR)
+	for ver in uvm uvm-1.2; do \
+	  d=$(abspath third_party/tests)/$$ver/src/dpi; \
+	  [ -f $$d/uvm_dpi.cc ] || continue; \
+	  g++ -fPIC -O2 -c -o $(CLOTHO_DPI_LIB_DIR)/$${ver}_dpi.o \
+	    -I$$d -I$(CLOTHO_SVDPI_DIR) -I$(VPI_INC_DIR) \
+	    $(TDIR)/runners/clotho_uvm_dpi.cc; \
+	done
+.PHONY: clotho-uvm-dpi
+
 # setup the dependencies
-RUNNERS_TARGETS := odin yosys icarus verilator slang zachjs-sv2v tree-sitter-systemverilog tree-sitter-verilog sv-parser moore verible surelog yosys-synlig circt-verilog
+RUNNERS_TARGETS := odin yosys icarus verilator slang zachjs-sv2v tree-sitter-systemverilog tree-sitter-verilog sv-parser moore verible surelog yosys-synlig circt-verilog clotho
 .PHONY: $(RUNNERS_TARGETS)
 runners: $(RUNNERS_TARGETS)

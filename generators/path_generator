@@ -68,6 +68,11 @@ for cfg in glob.glob(os.path.join(conf_dir, 'generators', 'meta-path',
             global_extra_tags.append(":top_module: top")
             extra_code = "module top; endmodule"
 
+        # Verbatim metadata lines applied to every test in this config, e.g.
+        # ":runner_clotho_flags: --loose-timescale".
+        for tag in data.get('extra_tags', []):
+            global_extra_tags.append(tag)
+
     test_dir = os.path.join(tests_dir, 'generated', project)
 
     if not os.path.isdir(test_dir):

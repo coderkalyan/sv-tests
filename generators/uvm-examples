@@ -22,6 +22,7 @@ templ = """/*
 :type: simulation elaboration parsing
 :timeout: 900
 :unsynthesizable: 1
+:runner_clotho_flags: --loose-timescale
 :simvariants: {2}
 */
 """

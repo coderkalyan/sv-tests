@@ -22,6 +22,7 @@ templ = """/*
 :tags: ivtest
 :results_group: imported
 :type: simulation elaboration parsing
+:runner_clotho_flags: --loose-timescale
 {2}
 {4}
 */

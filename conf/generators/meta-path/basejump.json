@@ -64,5 +64,8 @@
 		"bsg_nonsynth_profiler.sv"
 	],
 	"fake_topmodule": true,
-	"results_group": "imported"
+	"results_group": "imported",
+	"extra_tags": [
+		":runner_clotho_flags: --loose-timescale"
+	]
 }

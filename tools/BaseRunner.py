@@ -55,6 +55,10 @@ class BaseRunner:
         self.executable = executable
         self.supported_features = supported_features
         self.allowed_extensions = ['.v', '.sv', '.vh', '.svh']
+        # Set by a runner whose tool should see the test's :workdir: and
+        # :scratch_dirs: (see prepare_workdir). Off by default: a runner that
+        # keeps its own files in tmp_dir would collide with the workdir's names.
+        self.uses_workdir = False
 
         self.url = "https://github.com/symbiflow/sv-tests"
         self.submodule = ""
@@ -113,6 +117,8 @@ class BaseRunner:
 
         Returns a tuple containing command execution log and return code.
         """
+        if self.uses_workdir:
+            self.prepare_workdir(tmp_dir, params)
         self.prepare_run_cb(tmp_dir, params)
 
         proc = subprocess.Popen(
@@ -148,6 +154,27 @@ class BaseRunner:
         return (
             invocation_log + self.transform_log(log.decode('utf-8', 'ignore')),
             returncode)
+
+    def prepare_workdir(self, tmp_dir, params):
+        """ Give the command a working directory that looks like the test's own
+
+        Imported suites run their designs from the suite's root, so a design
+        names its data files relative to it ("ivltests/x.dat") and writes its
+        output into directories the suite's driver created ("work/"). The
+        command runs in tmp_dir, so every entry of the test's :workdir: is
+        symlinked into it, and each :scratch_dirs: entry is created empty, so
+        what the design writes lands in tmp_dir and never in the suite checkout.
+        """
+        workdir = params.get('workdir', '')
+        scratch_dirs = params.get('scratch_dirs', [])
+        if workdir:
+            for entry in os.listdir(workdir):
+                if entry in scratch_dirs:
+                    continue
+                os.symlink(
+                    os.path.join(workdir, entry), os.path.join(tmp_dir, entry))
+        for scratch in scratch_dirs:
+            os.makedirs(os.path.join(tmp_dir, scratch), exist_ok=True)
 
     def is_success_returncode(self, rc, params):
         """ Returns a boolean if the given returncode is considered a success.

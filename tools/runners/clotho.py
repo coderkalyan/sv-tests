@@ -25,6 +25,10 @@ class clotho(BaseRunner):
             'clotho', os.environ.get('CLOTHO_BIN', 'clotho'),
             {'parsing', 'elaboration', 'simulation'})
 
+        # Run from the test's :workdir: with its :scratch_dirs:, as the suite's
+        # own driver does (ivtest's designs open "ivltests/..." and "work/...").
+        self.uses_workdir = True
+
         self.submodule = "third_party/tools/clotho"
         self.url = f"https://github.com/chipsalliance/sv-tests/tree/{self.get_commit()}"
 
@@ -82,6 +86,11 @@ class clotho(BaseRunner):
             self.cmd += shlex.split(params['runner_clotho_flags'])
 
         self.cmd += params['files']
+
+        # `+arg`s after the files go to the design for $test$plusargs and
+        # $value$plusargs (LRM 21.6); a `lint` has no run to give them to.
+        if mode == 'simulation':
+            self.cmd += params['plusargs']
 
     def get_version_cmd(self):
         return [self.executable, "--version"]

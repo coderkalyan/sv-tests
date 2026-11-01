@@ -114,7 +114,8 @@ test = os.path.abspath(os.path.join(dirs['tests'], args.test))
 supported_test_params = [
     "name", "tags", "description", "files", "incdirs", "top_module", "timeout",
     "type", "should_fail", "should_fail_because", "defines",
-    "compatible-runners", "unsynthesizable", "results_group", "simvariants"
+    "compatible-runners", "unsynthesizable", "results_group", "simvariants",
+    "workdir", "scratch_dirs", "plusargs"
 ]
 
 test_params = {}
@@ -162,6 +163,9 @@ try:
             test_params.setdefault('unsynthesizable', '0')
             test_params.setdefault('results_group', "")
             test_params.setdefault('simvariants', "")
+            test_params.setdefault('workdir', "")
+            test_params.setdefault('scratch_dirs', "")
+            test_params.setdefault('plusargs', "")
 
             if len(set(supported_test_params) - set(test_params.keys())) != 0:
                 missing = list(
@@ -212,6 +216,11 @@ for key in libs.keys():
 
 test_params['defines'] = test_params['defines'].split()
 test_params['simvariants'] = test_params['simvariants'].split()
+test_params['scratch_dirs'] = test_params['scratch_dirs'].split()
+test_params['plusargs'] = test_params['plusargs'].split()
+if test_params['workdir']:
+    test_params['workdir'] = os.path.abspath(
+        os.path.join(dirs['tests'], test_params['workdir']))
 
 # Filter test files based on what the runner claims to support.
 filtered_files = []
@@ -286,6 +295,8 @@ try:
     test_params['incdirs'] = ' '.join(test_params['incdirs'])
     test_params['defines'] = ' '.join(test_params['defines'])
     test_params['simvariants'] = ' '.join(test_params['simvariants'])
+    test_params['scratch_dirs'] = ' '.join(test_params['scratch_dirs'])
+    test_params['plusargs'] = ' '.join(test_params['plusargs'])
 
     with open(out, "w") as log:
         # start by writing params

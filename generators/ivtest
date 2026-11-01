@@ -14,11 +14,16 @@ import os
 import sys
 import glob
 
+# ivtest's driver (vvp_reg.pl) runs every test from the ivtest root after
+# creating work/ and log/ there: designs read data files relative to the root
+# (`$readmemh("ivltests/...")`) and write their output under work/ and log/.
 templ = """/*
 :name: {0}
 :description: Test imported from ivtest
 :files: {1}
 :incdirs: {3}
+:workdir: {5}
+:scratch_dirs: work log
 :tags: ivtest
 :results_group: imported
 :type: simulation elaboration parsing
@@ -395,6 +400,15 @@ ivtest_extra_args = {
     'pow_ca_unsigned': ':runner_verilator_flags: --converge-limit 1000000',
 }
 
+# Icarus predefines __ICARUS__ for every design it compiles. These two only
+# execute the checks they make when it is defined (without it the generate loop
+# stops one short of the index the checker reads), so they fail identically
+# under iverilog itself without the macro.
+ivtest_extra_defines = {
+    'pr2815398a': ['__ICARUS__'],
+    'pr2815398a_std': ['__ICARUS__'],
+}
+
 ivtest_dir = os.path.abspath(
     os.path.join(third_party_dir, "tools", "icarus", "ivtest"))
 ivtest_list_exclude = set(
@@ -453,10 +467,24 @@ for l in ivtest_lists:
             if name in ivtest_extra_args:
                 extra_args += ivtest_extra_args[name]
 
+            # The list's second field is `<type>[,<arg>...]`. Like
+            # RegressionList.pm, a `+` argument is a plusarg for the simulation
+            # run and everything else is an iverilog option; of those only -D
+            # has a counterpart here.
+            list_args = line[1].split(',')[1:]
+            plusargs = [a for a in list_args if a.startswith('+')]
+            defines = [a[2:] for a in list_args if a.startswith('-D')]
+            defines += ivtest_extra_defines.get(name, [])
+            if defines:
+                extra_args += '\n:defines: ' + ' '.join(defines)
+            if plusargs:
+                extra_args += '\n:plusargs: ' + ' '.join(plusargs)
+
             tests.append(
                 (
                     list_filename + '_' + name + '_iv', path,
-                    should_fail_because, ' '.join(incdirs), extra_args))
+                    should_fail_because, ' '.join(incdirs), extra_args,
+                    ivtest_dir))
 
 test_dir = os.path.join(tests_dir, 'generated', tests_subdir)
 

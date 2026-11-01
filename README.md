@@ -65,6 +65,9 @@ After creating a new test case it must be correctly tagged:
 * `tags` - tag must be used to specify which part of SystemVerilog specification this test case covers.
 * `defines` - provides a list of macros for preprocessor.
 * `simvariants` - optional, a list to run a simulation multiple times, each with a different argument.
+* `workdir` - optional, a directory the design expects to run from, for suites whose designs name files relative to the suite root. A runner that sets `uses_workdir` (the clotho runner) symlinks the directory's entries into its temporary run directory; the others run from an empty one.
+* `scratch_dirs` - optional, directories to create empty in the run directory, for designs that write output under them (ivtest's `work/` and `log/`).
+* `plusargs` - optional, `+name[=value]` arguments for one simulation run, for `$test$plusargs` and `$value$plusargs`; only the clotho runner passes them.
 
   If the test case uses several SystemVerilog features, only the feature directly tested should be included in tags.
   List of existing tags is located in `conf/lrm.conf`.
